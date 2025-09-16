@@ -17,6 +17,8 @@ class SportsResultsAgent(AgentExecutor):
     """
 
     def __init__(self) -> None:
+        # Switch back to real agent
+        # self._agent = MockStreamingAgent() 
         self._agent = OpenAIWebSearchAgent()
         self._initialized = False
         self._init_lock = asyncio.Lock()
@@ -29,35 +31,60 @@ class SportsResultsAgent(AgentExecutor):
                     self._initialized = True
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
-        # Ensure agent is ready
-        await self._ensure_initialized()
+        print(f"Starting execute for task: {context.task_id}")
+        
+        try:
+            # Ensure agent is ready
+            await self._ensure_initialized()
 
-        # Announce work start
-        await event_queue.enqueue_event(
-            TaskStatusUpdateEvent(
-                status=TaskStatus(
-                    state=TaskState.working,
-                    message=Message(
-                        messageId=str(uuid.uuid4()),
-                        role="agent",
-                        parts=[TextPart(text="Starting work…")]
-                    )
-                ),
-                final=False,
-                contextId=context.task_id,
-                taskId=context.task_id,
+            # Announce work start
+            await event_queue.enqueue_event(
+                TaskStatusUpdateEvent(
+                    status=TaskStatus(
+                        state=TaskState.working,
+                        message=Message(
+                            messageId=str(uuid.uuid4()),
+                            role="agent",
+                            parts=[TextPart(text="Starting work…")]
+                        )
+                    ),
+                    final=False,
+                    contextId=context.task_id,
+                    taskId=context.task_id,
+                )
             )
-        )
 
-        user_text: str = context.get_user_input() or ""
+            user_text: str = context.get_user_input() or ""
+            print(f"Processing user input: {user_text}")
 
-        # Stream deltas from your agent and forward them as A2A events
-        async for chunk in self._agent.stream(user_text, session_id=context.task_id):
-            print(f"Received chunk: {chunk}")
-            content: str = str(chunk.get("content", ""))
+            # Get complete response from agent (non-streaming approach)
+            print(f"Getting complete response from agent...")
+            
+            try:
+                # Use the new non-streaming method
+                response = await self._agent.get_complete_response(user_text, session_id=context.task_id)
+                print(f"Received complete response: {response}")
+                
+                content: str = str(response.get("content", ""))
+                
+                # Send the complete response as a single message
+                if content:
+                    print(f"Enqueuing complete message: {content[:100]}...")
+                    await event_queue.enqueue_event(
+                        Message(
+                            messageId=str(uuid.uuid4()),
+                            role="agent",
+                            parts=[TextPart(text=content)]
+                        )
+                    )
+                    print(f"Successfully enqueued complete response")
 
-            # Emit content as a Message (so clients can render text progressively)
-            if content:
+            except Exception as response_error:
+                print(f"ERROR getting complete response: {response_error}")
+                import traceback
+                traceback.print_exc()
+                # Set content to error message
+                content = f"Error occurred: {str(response_error)}"
                 await event_queue.enqueue_event(
                     Message(
                         messageId=str(uuid.uuid4()),
@@ -66,41 +93,48 @@ class SportsResultsAgent(AgentExecutor):
                     )
                 )
 
-            # If upstream marks completion, finish with a final status
-            if chunk.get("is_task_complete") is True:
-                await event_queue.enqueue_event(
-                    TaskStatusUpdateEvent(
-                        status=TaskStatus(
-                            state=TaskState.completed,
-                            message=Message(
-                                messageId=str(uuid.uuid4()),
-                                role="agent",
-                                parts=[TextPart(text="All done!")]
-                            )
-                        ),
-                        final=True,
-                        contextId=context.task_id,
-                        taskId=context.task_id,
-                    )
+            # Always send completion status (moved outside the try block)
+            print(f"Task completed - sending completion status")
+            await event_queue.enqueue_event(
+                TaskStatusUpdateEvent(
+                    status=TaskStatus(
+                        state=TaskState.completed,
+                        message=Message(
+                            messageId=str(uuid.uuid4()),
+                            role="agent",
+                            parts=[TextPart(text="Task completed successfully!")]
+                        )
+                    ),
+                    final=True,
+                    contextId=context.task_id,
+                    taskId=context.task_id,
                 )
-                return
-
-        # Fallback: if the upstream never marked completion, complete now
-        await event_queue.enqueue_event(
-            TaskStatusUpdateEvent(
-                status=TaskStatus(
-                    state=TaskState.completed,
-                    message=Message(
-                        messageId=str(uuid.uuid4()),
-                        role="agent",
-                        parts=[TextPart(text="Done (no explicit completion flag received).")]
-                    )
-                ),
-                final=True,
-                contextId=context.task_id,
-                taskId=context.task_id,
             )
-        )
+            print(f"Execute completed successfully")
+            return
+        except Exception as e:
+            print(f"FATAL ERROR in execute: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            await event_queue.enqueue_event(
+                TaskStatusUpdateEvent(
+                    status=TaskStatus(
+                        state=TaskState.failed,
+                        message=Message(
+                            messageId=str(uuid.uuid4()),
+                            role="agent",
+                            parts=[TextPart(text=f"Error occurred: {str(e)}")]
+                        )
+                    ),
+                    final=True,
+                    contextId=context.task_id,
+                    taskId=context.task_id,
+                )
+            )
+            return
+
+        # Fallback completion has been removed since we always complete in the main try block
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
         # Your upstream agent may or may not support cancellation; emit a canceled status here.
