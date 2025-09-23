@@ -14,7 +14,7 @@ def _parse_sse_lines(line: str):
     return None
 
 async def main():
-    user_text = os.getenv("QUERY", "Who won the NFL game last night?")
+    user_text = os.getenv("QUERY", "What were the stats from CJ Stroud in the NFL game last night?")
     payload = {
         "jsonrpc": "2.0",
         "method": "message.stream",
