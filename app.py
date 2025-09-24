@@ -25,6 +25,7 @@ from a2a.types import (
 )
 
 APP_NAME = os.getenv("APP_NAME", "SportsResultAgent")
+AGENT_URL = os.getenv("AGENT_URL", "https://sports-results-agent.ashydesert-9d471906.westus2.azurecontainerapps.io")
 
 # ------------------------------------------------------------------------------
 # Minimal adapters so your executor can run without pulling in full A2A server stack
@@ -301,10 +302,12 @@ async def message_send(req: Request):
 
 
 @app.post("/rpc/v1/message:stream")
+@app.post("/")
 async def message_stream(req: Request):
     """
     Streaming: create Task and stream A2A events as SSE JSON-RPC payloads.
     """
+    print(f"AGENT_URL from / message_stream: {AGENT_URL}")
     body = await req.json()
     params = (body or {}).get("params", {})
     message_dict = params.get("message") or {}
@@ -388,7 +391,8 @@ async def agent_card_endpoint(request: Request):
     Public discovery endpoint for the Agent Card.
     Uses by_alias=True so keys like preferredTransport / defaultInputModes are camelCased.
     """
-    card = build_agent_card(_public_base_url_from_request(request))
+    #card = build_agent_card(_public_base_url_from_request(request))
+    card = build_agent_card(AGENT_URL)
     return JSONResponse(
         content=card.model_dump(by_alias=True, exclude_none=True),
         media_type="application/json",
@@ -398,7 +402,8 @@ async def agent_card_endpoint(request: Request):
 # Optional mirror (handy for quick checks and local tooling)
 @app.get("/rpc/v1/agent:card")
 async def agent_card_mirror(request: Request):
-    card = build_agent_card(_public_base_url_from_request(request))
+    #card = build_agent_card(_public_base_url_from_request(request))
+    card = build_agent_card(AGENT_URL)
     return JSONResponse(
         content=card.model_dump(by_alias=True, exclude_none=True),
         media_type="application/json",

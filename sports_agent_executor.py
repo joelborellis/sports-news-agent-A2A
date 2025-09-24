@@ -1,6 +1,5 @@
 import asyncio
 import uuid
-from typing import Any
 
 from a2a.types import Message, TextPart, TaskState, TaskStatusUpdateEvent, TaskStatus
 from a2a.server.agent_execution import AgentExecutor, RequestContext
