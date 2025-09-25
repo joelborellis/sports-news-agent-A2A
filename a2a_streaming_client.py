@@ -1,8 +1,11 @@
 # client_streaming.py
 import os, json, asyncio, httpx
+from dotenv import load_dotenv
 
-AGENT_URL = os.getenv("AGENT_URL", "http://localhost:8000")
-#AGENT_URL = os.getenv("AGENT_URL", "https://sports-results-agent.ashydesert-9d471906.westus2.azurecontainerapps.io")
+load_dotenv()
+
+#AGENT_URL = os.getenv("AGENT_URL", "http://localhost:10001")
+AGENT_URL = os.getenv("AGENT_URL", "https://sports-results-agent.ashydesert-9d471906.westus2.azurecontainerapps.io")
 #STREAM_URL = f"{AGENT_URL}/rpc/v1/message:stream"
 STREAM_URL = f"{AGENT_URL}"
 
@@ -16,7 +19,7 @@ def _parse_sse_lines(line: str):
     return None
 
 async def main():
-    user_text = os.getenv("QUERY", "What were the NFL scores for last weekend?")
+    user_text = os.getenv("QUERY", "What were the MLB scores from last night?")
     payload = {
         "jsonrpc": "2.0",
         "method": "message.stream",

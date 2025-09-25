@@ -23,6 +23,9 @@ from a2a.types import (
     AgentCapabilities,
     AgentSkill,
 )
+from dotenv import load_dotenv
+
+load_dotenv()
 
 APP_NAME = os.getenv("APP_NAME", "SportsResultAgent")
 AGENT_URL = os.getenv("AGENT_URL", "https://sports-results-agent.ashydesert-9d471906.westus2.azurecontainerapps.io")
@@ -212,7 +215,8 @@ def build_agent_card(base_url: str | None = None) -> AgentCard:
         name=APP_NAME,
         description="This agent provides sports results for various sports leagues such as MLB, NBA, NASCAR, and Golf.",
         # REST base (your app exposes /rpc/v1/message:send, /rpc/v1/message:stream, etc.)
-        url=f"{base}/rpc/v1",
+        #url=f"{base}/rpc/v1",
+        url=f"{base}",
         version="0.1.0",
         defaultInputModes=["text"],
         defaultOutputModes=["text"],
@@ -386,6 +390,20 @@ async def tasks_get(req: Request):
     return JSONResponse(rpc_result(build_task_snapshot(t)))
 
 @app.get("/.well-known/agent.json")
+async def agent_card_endpoint(request: Request):
+    """
+    Public discovery endpoint for the Agent Card.
+    Uses by_alias=True so keys like preferredTransport / defaultInputModes are camelCased.
+    """
+    #card = build_agent_card(_public_base_url_from_request(request))
+    card = build_agent_card(AGENT_URL)
+    return JSONResponse(
+        content=card.model_dump(by_alias=True, exclude_none=True),
+        media_type="application/json",
+        headers={"Cache-Control": "public, max-age=300"}
+    )
+
+@app.get("/.well-known/agent-card.json")
 async def agent_card_endpoint(request: Request):
     """
     Public discovery endpoint for the Agent Card.
