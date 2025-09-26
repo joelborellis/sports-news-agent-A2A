@@ -22,6 +22,7 @@ from a2a.types import (
     AgentCard,
     AgentCapabilities,
     AgentSkill,
+    AgentInterface,
 )
 from dotenv import load_dotenv
 
@@ -221,7 +222,11 @@ def build_agent_card(base_url: str | None = None) -> AgentCard:
         defaultInputModes=["text"],
         defaultOutputModes=["text"],
         # Snake_case property name in Python; will serialize to the spec via by_alias=True
-        preferred_transport="REST",
+        preferred_transport="HTTP+JSON",
+        additionalInterfaces=[
+            AgentInterface(transport="HTTP+JSON", url=f"{base}"),
+            AgentInterface(transport="JSONRPC", url=f"{base}")
+        ],
         capabilities=AgentCapabilities(streaming=True, push_notifications=True),
         skills=[
             AgentSkill(

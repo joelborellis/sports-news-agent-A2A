@@ -74,7 +74,7 @@ class OpenAIWebSearchAgent:
             
             async for event in stream_result.stream_events():
                 event_count += 1
-                print(f"Event #{event_count}: {type(event).__name__}")
+                #print(f"Event #{event_count}: {type(event).__name__}")
                 
                 # Look for ResponseTextDeltaEvent in raw_response_event
                 if (
@@ -84,12 +84,12 @@ class OpenAIWebSearchAgent:
                 ):
                     data = event.data
                     data_type = type(data).__name__
-                    print(f"Raw response event data type: {data_type}")
+                    #print(f"Raw response event data type: {data_type}")
 
                     # Extract text delta from ResponseTextDeltaEvent
                     if data_type == "ResponseTextDeltaEvent" and hasattr(data, "delta"):
                         delta_text = data.delta
-                        print(f"Delta text: '{delta_text}'")
+                        #print(f"Delta text: '{delta_text}'")
                         if delta_text:  # Collect all content
                             complete_content.append(delta_text)
 
