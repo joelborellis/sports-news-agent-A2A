@@ -399,6 +399,20 @@ async def agent_card_endpoint(request: Request):
         headers={"Cache-Control": "public, max-age=300"}
     )
 
+@app.get("/.well-known/agent-card.json")
+async def agent_card_endpoint(request: Request):
+    """
+    Public discovery endpoint for the Agent Card.
+    Uses by_alias=True so keys like preferredTransport / defaultInputModes are camelCased.
+    """
+    #card = build_agent_card(_public_base_url_from_request(request))
+    card = build_agent_card(AGENT_URL)
+    return JSONResponse(
+        content=card.model_dump(by_alias=True, exclude_none=True),
+        media_type="application/json",
+        headers={"Cache-Control": "public, max-age=300"}
+    )
+
 # Optional mirror (handy for quick checks and local tooling)
 @app.get("/rpc/v1/agent:card")
 async def agent_card_mirror(request: Request):
