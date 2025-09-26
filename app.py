@@ -22,7 +22,11 @@ from a2a.types import (
     AgentCard,
     AgentCapabilities,
     AgentSkill,
+    AgentInterface,
 )
+from dotenv import load_dotenv
+
+load_dotenv()
 
 APP_NAME = os.getenv("APP_NAME", "SportsResultAgent")
 AGENT_URL = os.getenv("AGENT_URL", "https://sports-results-agent.ashydesert-9d471906.westus2.azurecontainerapps.io")
@@ -212,12 +216,17 @@ def build_agent_card(base_url: str | None = None) -> AgentCard:
         name=APP_NAME,
         description="This agent provides sports results for various sports leagues such as MLB, NBA, NASCAR, and Golf.",
         # REST base (your app exposes /rpc/v1/message:send, /rpc/v1/message:stream, etc.)
-        url=f"{base}/rpc/v1",
+        #url=f"{base}/rpc/v1",
+        url=f"{base}",
         version="0.1.0",
         defaultInputModes=["text"],
         defaultOutputModes=["text"],
         # Snake_case property name in Python; will serialize to the spec via by_alias=True
-        preferred_transport="REST",
+        preferred_transport="HTTP+JSON",
+        additionalInterfaces=[
+            AgentInterface(transport="HTTP+JSON", url=f"{base}"),
+            AgentInterface(transport="JSONRPC", url=f"{base}")
+        ],
         capabilities=AgentCapabilities(streaming=True, push_notifications=True),
         skills=[
             AgentSkill(
